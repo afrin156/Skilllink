@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { ObjectId } from "mongodb"
-import clientPromise from "@/lib/mongodb"
+import { connectToDB } from "@/lib/mongodb"
 
 export async function GET(
   request: Request,
@@ -9,8 +9,8 @@ export async function GET(
   try {
     const { id } = await context.params
 
-    const client = await clientPromise
-    const db = client.db("SkillLink")
+    const db = await connectToDB()
+
 
     const job = await db
       .collection("jobs")

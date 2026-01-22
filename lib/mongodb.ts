@@ -1,24 +1,26 @@
-import mongoose from "mongoose"
+import { MongoClient } from "mongodb"
 
-const MONGODB_URI = process.env.MONGODB_URI!
+const uri = process.env.MONGODB_URI
 
-if (!MONGODB_URI) {
-  throw new Error("Please define MONGODB_URI in .env")
+if (!uri) {
+  throw new Error("MONGODB_URI is not defined")
 }
 
-let cached = (global as any).mongoose
+let client: MongoClient
+let clientPromise: Promise<MongoClient>
 
-if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null }
+declare global {
+  var _mongoClientPromise: Promise<MongoClient> | undefined
 }
+
+if (!global._mongoClientPromise) {
+  client = new MongoClient(uri)
+  global._mongoClientPromise = client.connect()
+}
+
+clientPromise = global._mongoClientPromise!
 
 export async function connectToDB() {
-  if (cached.conn) return cached.conn
-
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI).then((mongoose) => mongoose)
-  }
-
-  cached.conn = await cached.promise
-  return cached.conn
+  const client = await clientPromise
+  return client.db("SkillLink")
 }
