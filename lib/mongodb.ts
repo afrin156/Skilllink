@@ -10,6 +10,7 @@ let client: MongoClient
 let clientPromise: Promise<MongoClient>
 
 declare global {
+  // eslint-disable-next-line no-var
   var _mongoClientPromise: Promise<MongoClient> | undefined
 }
 
@@ -18,7 +19,7 @@ if (!global._mongoClientPromise) {
   global._mongoClientPromise = client.connect()
 }
 
-clientPromise = global._mongoClientPromise!
+clientPromise = global._mongoClientPromise
 
 export async function connectToDB() {
   const client = await clientPromise
