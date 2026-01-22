@@ -1,21 +1,24 @@
-// lib/mongodb.ts
-import { MongoClient } from "mongodb";
+import mongoose from "mongoose"
 
-const uri = process.env.MONGODB_URI!;
-const options = {};
+const MONGODB_URI = process.env.MONGODB_URI!
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
-
-declare global {
-  var _mongoClientPromise: Promise<MongoClient> | undefined;
+if (!MONGODB_URI) {
+  throw new Error("Please define MONGODB_URI in .env")
 }
 
-if (!global._mongoClientPromise) {
-  client = new MongoClient(uri, options);
-  global._mongoClientPromise = client.connect();
+let cached = (global as any).mongoose
+
+if (!cached) {
+  cached = (global as any).mongoose = { conn: null, promise: null }
 }
 
-clientPromise = global._mongoClientPromise;
+export async function connectToDB() {
+  if (cached.conn) return cached.conn
 
-export default clientPromise;
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI).then((mongoose) => mongoose)
+  }
+
+  cached.conn = await cached.promise
+  return cached.conn
+}
