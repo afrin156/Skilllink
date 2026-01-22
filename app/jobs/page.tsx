@@ -1,14 +1,28 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { Search, MapPin, Briefcase, Building2, Clock, Shield } from "lucide-react"
+import {
+  Search,
+  MapPin,
+  Briefcase,
+  Building2,
+  Clock,
+  Shield,
+} from "lucide-react"
 
 interface Job {
   _id: string
@@ -21,10 +35,12 @@ interface Job {
   posted: string
   verified: boolean
   tags?: string[]
-  hrId: string
+  hrId?: string
 }
 
 export default function JobsPage() {
+  const { data: session } = useSession()
+
   const [searchTerm, setSearchTerm] = useState("")
   const [jobListings, setJobListings] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,21 +48,22 @@ export default function JobsPage() {
 
   useEffect(() => {
     fetch("/api/jobs")
-      .then(res => {
+      .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch jobs")
         return res.json()
       })
       .then((data: Job[]) => setJobListings(data))
-      .catch(err => setError(err.message))
+      .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
 
-  const filteredJobs = jobListings.filter(job =>
-    job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    job.tags?.some(tag =>
-      tag.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+  const filteredJobs = jobListings.filter(
+    (job) =>
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.tags?.some((tag) =>
+        tag.toLowerCase().includes(searchTerm.toLowerCase())
+      )
   )
 
   return (
@@ -65,16 +82,14 @@ export default function JobsPage() {
           {/* Search */}
           <Card className="mb-6">
             <CardContent className="pt-6">
-              <div className="flex gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search jobs, companies, or skills..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search jobs, companies, or skills..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
               </div>
             </CardContent>
           </Card>
@@ -83,13 +98,18 @@ export default function JobsPage() {
           {error && <p className="text-red-500">{error}</p>}
 
           <div className="space-y-4">
-            {filteredJobs.map(job => (
-              <Card key={job._id} className="hover:shadow-md transition-shadow">
+            {filteredJobs.map((job) => (
+              <Card
+                key={job._id}
+                className="hover:shadow-md transition-shadow"
+              >
                 <CardHeader>
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <CardTitle className="text-xl">{job.title}</CardTitle>
+                        <CardTitle className="text-xl">
+                          {job.title}
+                        </CardTitle>
                         {job.verified && (
                           <Badge variant="secondary" className="gap-1">
                             <Shield className="h-3 w-3" />
@@ -115,19 +135,35 @@ export default function JobsPage() {
                         <Button variant="outline">View Details</Button>
                       </Link>
 
-                      {/* 🔹 MESSAGE HR BUTTON */}
+                      {/* MESSAGE HR */}
                       <Button
                         onClick={async () => {
-                          await fetch("/api/messages", {
+                          if (!session?.user?.id) {
+                            alert("Please login first")
+                            return
+                          }
+
+                          if (!job.hrId) {
+                            alert("HR not available for this job")
+                            return
+                          }
+
+                          const res = await fetch("/api/messages", {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
                             body: JSON.stringify({
-                              senderId: "USER_ID_HERE",
+                              senderId: session.user.id,
                               receiverId: job.hrId,
-                              message: "Hi, I am interested in this job",
+                              message:
+                                "Hi, I am interested in this job",
                             }),
                           })
-                          alert("Message sent to HR ✅")
+
+                          if (res.ok)
+                            alert("Message sent to HR ✅")
+                          else alert("Failed to send message ❌")
                         }}
                       >
                         Message HR
@@ -151,7 +187,7 @@ export default function JobsPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    {job.tags?.map(tag => (
+                    {job.tags?.map((tag) => (
                       <Badge key={tag} variant="outline">
                         {tag}
                       </Badge>

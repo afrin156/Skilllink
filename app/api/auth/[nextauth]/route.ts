@@ -1,6 +1,6 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
-import clientPromise from "@/lib/mongodb"
+import { connectToDB } from "@/lib/mongodb"
 
 const handler = NextAuth({
   providers: [
@@ -13,8 +13,7 @@ const handler = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email) return null
 
-        const client = await clientPromise
-        const db = client.db("SkillLink")
+        const db = await connectToDB()
 
         const user = await db.collection("users").findOne({
           email: credentials.email,

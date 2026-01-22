@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server"
-import clientPromise from "@/lib/mongodb"
+import { connectToDB } from "@/lib/mongodb"
 
 export async function GET() {
   try {
-    const client = await clientPromise
-    const db = client.db("SkillLink")
+    const db = await connectToDB()
 
     const jobs = await db
       .collection("jobs")
@@ -14,6 +13,7 @@ export async function GET() {
 
     return NextResponse.json(jobs)
   } catch (error) {
+    console.error(error)
     return NextResponse.json(
       { error: "Failed to fetch jobs" },
       { status: 500 }
